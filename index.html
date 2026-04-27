@@ -1,0 +1,88 @@
+function processar(texto) {
+    document.getElementById("loading").style.display = "none";
+
+    let scoreIA = 0;
+    let scoreHumano = 0;
+    let motivos = [];
+
+    const frases = texto.split(/[.!?]/).filter(f => f.trim());
+    const palavras = texto.toLowerCase().match(/\b\w+\b/g) || [];
+
+    const tamanhos = frases.map(f => f.length);
+    const media = tamanhos.reduce((a,b)=>a+b,0)/tamanhos.length;
+    const variacao = Math.max(...tamanhos) - Math.min(...tamanhos);
+
+    const diversidade = new Set(palavras).size / palavras.length;
+
+    // --- INDICADORES DE IA ---
+    if (variacao < media * 0.4) {
+        scoreIA += 15;
+        motivos.push("Frases com pouca variação");
+    }
+
+    if (diversidade < 0.45) {
+        scoreIA += 15;
+        motivos.push("Vocabulário limitado");
+    }
+
+    const conectivos = (texto.match(/além disso|portanto|assim|dessa forma|em conclusão/gi) || []).length;
+    if (conectivos > 3) {
+        scoreIA += 15;
+        motivos.push("Uso repetitivo de conectivos");
+    }
+
+    if (/introdução|conclusão/i.test(texto)) {
+        scoreIA += 10;
+        motivos.push("Estrutura muito padronizada");
+    }
+
+    // --- INDICADORES HUMANOS ---
+    if (variacao > media * 0.7) {
+        scoreHumano += 20;
+    }
+
+    if (diversidade > 0.6) {
+        scoreHumano += 20;
+    }
+
+    // presença de opinião pessoal
+    if (/eu|acho|penso|minha opinião/i.test(texto)) {
+        scoreHumano += 15;
+    }
+
+    // variação de pontuação
+    if (/[!?]/.test(texto)) {
+        scoreHumano += 10;
+    }
+
+    // erros naturais (humanos escrevem assim)
+    if (texto.match(/\.\.\.|kkk|rs/)) {
+        scoreHumano += 10;
+    }
+
+    // frases curtas misturadas com longas
+    if (variacao > 100) {
+        scoreHumano += 10;
+    }
+
+    // --- RESULTADO FINAL ---
+    let humano = 50 + (scoreHumano - scoreIA);
+
+    if (humano > 100) humano = 100;
+    if (humano < 0) humano = 0;
+
+    document.getElementById("resultado").innerHTML = `
+        <div class="card">
+            <div class="score">${Math.round(humano)}% de chance de NÃO ser IA</div>
+        </div>
+
+        <div class="card">
+            <strong>Análise:</strong>
+            <ul>${motivos.map(m => `<li>${m}</li>`).join("")}</ul>
+        </div>
+    `;
+
+    if (humano >= 95) {
+        iniciarFogos();
+    }
+}
